@@ -15,6 +15,13 @@ public class Student {
         this.phone = phone;
     }
 
+    public Student(String name, int gender, String email, String phone) {
+        this.name = name;
+        this.gender = gender;
+        this.email = email;
+        this.phone = phone;
+    }
+
     public int getId() {
         return id;
     }

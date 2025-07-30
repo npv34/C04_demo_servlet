@@ -23,6 +23,11 @@
 </head>
 <body>
 <h2>Student list</h2>
+<form action="/students/search" method="get">
+    <input type="text" name="keyword">
+    <button type="submit">Search</button>
+</form>
+<a href="/students/create">Create</a>
 <table>
     <tr>
         <th>STT</th>
@@ -39,7 +44,10 @@
         <td><c:out value="${student.gender}"/></td>
         <td><c:out value="${student.email}"/></td>
         <td><c:out value="${student.phone}"/></td>
-        <td><a href="/students/delete?id=<c:out value="${student.id}"/>">Delete</a></td>
+        <td>
+            <a href="/students/delete?id=<c:out value="${student.id}"/>">Delete</a>
+            <a href="/students/edit?id=<c:out value="${student.id}"/>">Edit</a>
+        </td>
     </tr>
     </c:forEach>
 </table>
