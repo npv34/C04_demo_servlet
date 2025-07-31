@@ -35,15 +35,22 @@
         <th>Gender</th>
         <th>Email</th>
         <th>Phone</th>
+        <th>Group</th>
         <th></th>
     </tr>
     <c:forEach var="student" items="${requestScope.listStudent}">
     <tr>
         <td>1</td>
         <td><c:out value="${student.name}"/></td>
-        <td><c:out value="${student.gender}"/></td>
+        <c:if test="${student.gender == 1}">
+            <td><c:out value="Male"/></td>
+        </c:if>
+        <c:if test="${student.gender == 2}">
+            <td><c:out value="Famale"/></td>
+        </c:if>
         <td><c:out value="${student.email}"/></td>
         <td><c:out value="${student.phone}"/></td>
+        <td><c:out value="${student.getGroup().getName()}"/></td>
         <td>
             <a href="/students/delete?id=<c:out value="${student.id}"/>">Delete</a>
             <a href="/students/edit?id=<c:out value="${student.id}"/>">Edit</a>

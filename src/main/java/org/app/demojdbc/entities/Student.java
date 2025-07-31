@@ -6,7 +6,7 @@ public class Student {
     private int gender;
     private String email;
     private String phone;
-
+    private Group group;
     public Student(int id, String name, int gender, String email, String phone) {
         this.id = id;
         this.name = name;
@@ -60,5 +60,13 @@ public class Student {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public void setGroup(Group group) {
+        this.group = group;
+    }
+
+    public Group getGroup() {
+        return group;
     }
 }

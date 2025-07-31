@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.app.demojdbc.database.DBConnect;
+import org.app.demojdbc.entities.Group;
 import org.app.demojdbc.entities.Student;
 
 import java.io.IOException;
@@ -74,7 +75,8 @@ public class StudentServlet extends HttpServlet {
                                  HttpServletResponse response) throws ServletException {
         // get data
         try {
-            String sql = "SELECT * FROM students";
+            String sql = "SELECT students.*, `groups`.name as 'group_name' FROM students\n" +
+                        "JOIN `groups` ON students.group_id = `groups`.id";
             PreparedStatement statement = conn.prepareStatement(sql);
 
             // doi voi cau len select thi tra ve 1 doi tuong ResultSet
@@ -88,8 +90,13 @@ public class StudentServlet extends HttpServlet {
                 int gender = resultSet.getInt("gender");
                 String email = resultSet.getString("email");
                 String phone = resultSet.getString("phone");
-
                 Student student = new Student(id, name, gender, email, phone);
+
+                int groupId = resultSet.getInt("group_id");
+                String groupName = resultSet.getString("group_name");
+                Group group = new Group(groupId, groupName);
+
+                student.setGroup(group);
                 list.add(student);
             }
             request.setAttribute("listStudent", list);
@@ -166,16 +173,18 @@ public class StudentServlet extends HttpServlet {
             int gender = Integer.parseInt(request.getParameter("gender"));
             String email = request.getParameter("email");
             String phone = request.getParameter("phone");
+            String groupId = request.getParameter("group_id");
             Student newStudent = new Student(name, gender, email, phone);
 
 
-            String sql = "UPDATE students SET name = ?, gender =?, email = ?, phone = ? WHERE id = ?";
+            String sql = "UPDATE students SET name = ?, gender =?, email = ?, phone = ?, group_id = ? WHERE id = ?";
             PreparedStatement preparedStatement = conn.prepareStatement(sql);
             preparedStatement.setString(1, newStudent.getName());
             preparedStatement.setInt(2, newStudent.getGender());
             preparedStatement.setString(3, newStudent.getEmail());
             preparedStatement.setString(4, newStudent.getPhone());
-            preparedStatement.setInt(5, studentEdit.getId());
+            preparedStatement.setString(5, groupId);
+            preparedStatement.setInt(6, studentEdit.getId());
             preparedStatement.execute();
 
             response.sendRedirect("/students");
@@ -186,7 +195,8 @@ public class StudentServlet extends HttpServlet {
     }
 
     public Student findStudentById(int id) throws SQLException {
-        String sql = "SELECT * FROM students WHERE id = ?";
+        String sql = "SELECT students.*, `groups`.name as 'group_name' FROM students\n" +
+                "JOIN `groups` ON students.group_id = `groups`.id WHERE students.id = ?";
         PreparedStatement preparedStatement = conn.prepareStatement(sql);
         preparedStatement.setInt(1, id);
         ResultSet resultSet = preparedStatement.executeQuery();
@@ -197,7 +207,14 @@ public class StudentServlet extends HttpServlet {
             int gender = resultSet.getInt("gender");
             String email = resultSet.getString("email");
             String phone = resultSet.getString("phone");
+            int groupId = resultSet.getInt("group_id");
+            String groupName = resultSet.getString("group_name");
+
+            Group group = new Group(groupId, groupName);
+
             s = new Student(id, name, gender, email, phone);
+            s.setGroup(group);
+
         }
         return s;
     }
@@ -213,8 +230,11 @@ public class StudentServlet extends HttpServlet {
                 return;
             }
 
+            List<Group> listGroup = getAllGroup();
+
             // return view edit
             request.setAttribute("studentEdit", studentEdit);
+            request.setAttribute("listGroup", listGroup);
             RequestDispatcher requestDispatcher = request.getRequestDispatcher("/views/students/edit.jsp");
             requestDispatcher.forward(request, response);
         } catch (SQLException | ServletException | IOException e) {
@@ -251,5 +271,25 @@ public class StudentServlet extends HttpServlet {
         } catch (SQLException | IOException | ServletException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public List<Group> getAllGroup() {
+        List<Group> list = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM `groups`";
+            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+
+                Group g = new Group(id, name);
+                list.add(g);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return list;
     }
 }
