@@ -1,4 +1,4 @@
-package org.app.demojdbc;
+package org.app.demojdbc.controllers;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.app.demojdbc.database.DBConnect;
 import org.app.demojdbc.entities.Group;
 import org.app.demojdbc.entities.Student;
+import org.app.demojdbc.models.GroupModel;
+import org.app.demojdbc.models.StudentModel;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,14 +19,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @WebServlet(name = "StudentServet", urlPatterns = {"/students/*"})
 public class StudentServlet extends HttpServlet {
     Connection conn = null;
+    StudentModel studentModel;
+    GroupModel groupModel;
     @Override
     public void init() throws ServletException {
         DBConnect dbConnect = new DBConnect();
         conn = dbConnect.getConnect();
+
+        studentModel = new StudentModel();
+        groupModel = new GroupModel();
     }
 
     @Override
@@ -75,30 +83,7 @@ public class StudentServlet extends HttpServlet {
                                  HttpServletResponse response) throws ServletException {
         // get data
         try {
-            String sql = "SELECT students.*, `groups`.name as 'group_name' FROM students\n" +
-                        "JOIN `groups` ON students.group_id = `groups`.id";
-            PreparedStatement statement = conn.prepareStatement(sql);
-
-            // doi voi cau len select thi tra ve 1 doi tuong ResultSet
-            ResultSet resultSet = statement.executeQuery();
-            // get data tu resultSet
-            List<Student> list = new ArrayList<>();
-
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                int gender = resultSet.getInt("gender");
-                String email = resultSet.getString("email");
-                String phone = resultSet.getString("phone");
-                Student student = new Student(id, name, gender, email, phone);
-
-                int groupId = resultSet.getInt("group_id");
-                String groupName = resultSet.getString("group_name");
-                Group group = new Group(groupId, groupName);
-
-                student.setGroup(group);
-                list.add(student);
-            }
+            List<Student> list = studentModel.getAllStudent();
             request.setAttribute("listStudent", list);
             RequestDispatcher requestDispatcher = request.getRequestDispatcher("/views/students/list.jsp");
             requestDispatcher.forward(request, response);
@@ -112,12 +97,7 @@ public class StudentServlet extends HttpServlet {
         // get id tu req
         String id = request.getParameter("id");
         try {
-            String sql = "DELETE FROM students WHERE id = ?";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-            // gan du lieu vao tham so cua preparedStatement
-            preparedStatement.setInt(1, Integer.parseInt(id));
-            preparedStatement.execute();
-
+             studentModel.deleteByID(Integer.parseInt(id));
             // quay lai trang /students
             response.sendRedirect("/students");
         }catch (SQLException | IOException e) {
@@ -128,9 +108,11 @@ public class StudentServlet extends HttpServlet {
 
     public void showCreateStudentPage(HttpServletRequest request, HttpServletResponse response) {
         try {
+            List<Group> listGroup = groupModel.getAll();
+            request.setAttribute("listGroup", listGroup);
             RequestDispatcher requestDispatcher = request.getRequestDispatcher("/views/students/create.jsp");
             requestDispatcher.forward(request, response);
-        } catch (ServletException | IOException e) {
+        } catch (ServletException | IOException | SQLException e) {
             throw new RuntimeException(e);
         }
     }
@@ -141,15 +123,10 @@ public class StudentServlet extends HttpServlet {
            int gender = Integer.parseInt(request.getParameter("gender"));
            String email = request.getParameter("email");
            String phone = request.getParameter("phone");
+           int groupID = Integer.parseInt(request.getParameter("group_id"));
            Student newStudent = new Student(name, gender, email, phone);
 
-           String sql = "INSERT INTO students(name, gender, email, phone) VALUE (?,?,?,?)";
-           PreparedStatement preparedStatement = conn.prepareStatement(sql);
-           preparedStatement.setString(1, newStudent.getName());
-           preparedStatement.setInt(2, newStudent.getGender());
-           preparedStatement.setString(3, newStudent.getEmail());
-           preparedStatement.setString(4, newStudent.getPhone());
-           preparedStatement.execute();
+           studentModel.createStudent(newStudent, groupID);
 
            response.sendRedirect("/students");
        } catch (IOException | SQLException e) {
@@ -176,17 +153,7 @@ public class StudentServlet extends HttpServlet {
             String groupId = request.getParameter("group_id");
             Student newStudent = new Student(name, gender, email, phone);
 
-
-            String sql = "UPDATE students SET name = ?, gender =?, email = ?, phone = ?, group_id = ? WHERE id = ?";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-            preparedStatement.setString(1, newStudent.getName());
-            preparedStatement.setInt(2, newStudent.getGender());
-            preparedStatement.setString(3, newStudent.getEmail());
-            preparedStatement.setString(4, newStudent.getPhone());
-            preparedStatement.setString(5, groupId);
-            preparedStatement.setInt(6, studentEdit.getId());
-            preparedStatement.execute();
-
+            studentModel.editStudent(newStudent, studentEdit.getId(), groupId);
             response.sendRedirect("/students");
 
         } catch (SQLException | IOException e) {
@@ -195,28 +162,7 @@ public class StudentServlet extends HttpServlet {
     }
 
     public Student findStudentById(int id) throws SQLException {
-        String sql = "SELECT students.*, `groups`.name as 'group_name' FROM students\n" +
-                "JOIN `groups` ON students.group_id = `groups`.id WHERE students.id = ?";
-        PreparedStatement preparedStatement = conn.prepareStatement(sql);
-        preparedStatement.setInt(1, id);
-        ResultSet resultSet = preparedStatement.executeQuery();
-        Student s = null;
-        while (resultSet.next()) {
-            int idStudent = resultSet.getInt("id");
-            String name = resultSet.getString("name");
-            int gender = resultSet.getInt("gender");
-            String email = resultSet.getString("email");
-            String phone = resultSet.getString("phone");
-            int groupId = resultSet.getInt("group_id");
-            String groupName = resultSet.getString("group_name");
-
-            Group group = new Group(groupId, groupName);
-
-            s = new Student(id, name, gender, email, phone);
-            s.setGroup(group);
-
-        }
-        return s;
+        return studentModel.findById(id);
     }
 
     public void showEditStudentPage(HttpServletRequest request, HttpServletResponse response) {
@@ -274,22 +220,10 @@ public class StudentServlet extends HttpServlet {
     }
 
     public List<Group> getAllGroup() {
-        List<Group> list = new ArrayList<>();
         try {
-            String sql = "SELECT * FROM `groups`";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-
-                Group g = new Group(id, name);
-                list.add(g);
-            }
+            return groupModel.getAll();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        return list;
     }
 }

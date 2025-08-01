@@ -1,5 +1,7 @@
 package org.app.demojdbc.entities;
 
+import java.util.List;
+
 public class Student {
     private int id;
     private String name;
@@ -7,6 +9,7 @@ public class Student {
     private String email;
     private String phone;
     private Group group;
+    private List<Subject> listSubject;
     public Student(int id, String name, int gender, String email, String phone) {
         this.id = id;
         this.name = name;
@@ -68,5 +71,13 @@ public class Student {
 
     public Group getGroup() {
         return group;
+    }
+
+    public void addSubject(Subject subject) {
+        listSubject.add(subject);
+    }
+
+    public List<Subject> getListSubject() {
+        return listSubject;
     }
 }
